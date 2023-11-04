@@ -6,6 +6,7 @@
 
 typedef struct bucket {
     int size;
+    int currentSize;
     int * vector;
 } bucket;
 
@@ -78,10 +79,30 @@ bucket * create_buckets(int base) {
 
     for (int i = 0; i < base; i++) {
         buckets[i].size = 0;
+        buckets[i].currentSize = 0;
         buckets[i].vector = NULL;
     }
 
     return buckets;
+}
+
+void push_bucket(bucket * buckets, int base, int place, int num) {
+    int radix = get_digit(base, num, place);
+
+    if (buckets[radix].vector == NULL) {
+        buckets[radix].vector = create_vector(2);
+        buckets[radix].size = 2;
+    }
+
+    if (buckets[radix].size == buckets[radix].currentSize) {  
+        buckets[radix].size = buckets[radix].size * 2;
+        int * oldRef = buckets[radix].vector;
+        buckets[radix].vector = copy_vector(buckets[radix].vector, buckets[radix].currentSize, buckets[radix].size);
+        clean_vector(oldRef);
+    }
+
+    buckets[radix].vector[buckets[radix].currentSize] = num;
+    buckets[radix].currentSize++;
 }
 
 void clean_buckets(bucket * buckets, int base) {
@@ -99,16 +120,13 @@ void radix_sort (int base, int * vector, int size) {
         bucket * buckets = create_buckets(base);
 
         for (int j = 0; j < size; j++) {
-            int radix = get_digit(base, vector[j], i);
-
-            buckets[radix].vector = push_vector(buckets[radix].vector, buckets[radix].size, vector[j]);
-            buckets[radix].size++;
+            push_bucket(buckets, base, i, vector[j]);
         }
 
         int k = 0;
 
         for (int j = 0; j < base; j++) {
-            for (int l = 0; l < buckets[j].size; l++) {
+            for (int l = 0; l < buckets[j].currentSize; l++) {
                 vector[k] = buckets[j].vector[l];
                 k++;
             }
@@ -135,21 +153,27 @@ void print_line() {
 int main () {
     srand(time(NULL));
 
-    int base = 512;
-    int number_of_items = 100000;
-    int max = 1000;
+    int base = 2048;
+    int number_of_items = 10000000;
+    int max = INT_MAX;
 
     int * vector = create_random_vector(number_of_items, 0, max);
 
-    print_vector(vector, number_of_items);
-
-    print_line();
+    time_t init = time(NULL);
 
     radix_sort(base, vector, number_of_items);
 
-    print_vector(vector, number_of_items);
+    time_t end = time(NULL);
 
     clean_vector(vector);
+
+    printf(
+        "Elapsed time (radix sort, %d items, base %d, max integer %d): %ld seconds\n",
+        number_of_items,
+        base,
+        max,
+        end - init
+    );
 
     return 0;
 }
