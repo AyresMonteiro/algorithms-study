@@ -30,21 +30,10 @@ int * create_random_vector(int size, int min, int max) {
     return vector;
 }
 
-int * copy_vector(int * vector, int originalSize, int size) {
-    int * newVector = create_vector(size);
-
-    for (int i = 0; i < originalSize; i++) {
-        newVector[i] = vector[i];
+void zeros_vector(int * vector, int size) {
+    for (int i = 0; i < size; i++) {
+        vector[i] = 0;
     }
-
-    return newVector;
-}
-
-int * push_vector(int * original, int size, int num) {
-    int * newVector = copy_vector(original, size, size + 1);
-    clean_vector(original);
-    newVector[size] = num;
-    return newVector;
 }
 
 int get_digit(int base, int num, int place) {
@@ -74,35 +63,16 @@ int get_max_radix (int base, int * vector, int size) {
     return max_radix;
 }
 
-bucket * create_buckets(int base) {
+bucket * create_buckets(int base, int * counting) {
     bucket * buckets = (bucket *) calloc(base, sizeof(bucket));
 
     for (int i = 0; i < base; i++) {
-        buckets[i].size = 0;
+        buckets[i].size = counting[i];
         buckets[i].currentSize = 0;
-        buckets[i].vector = NULL;
+        buckets[i].vector = create_vector(counting[i]);
     }
 
     return buckets;
-}
-
-void push_bucket(bucket * buckets, int base, int place, int num) {
-    int radix = get_digit(base, num, place);
-
-    if (buckets[radix].vector == NULL) {
-        buckets[radix].vector = create_vector(2);
-        buckets[radix].size = 2;
-    }
-
-    if (buckets[radix].size == buckets[radix].currentSize) {  
-        buckets[radix].size = buckets[radix].size * 2;
-        int * old_ref = buckets[radix].vector;
-        buckets[radix].vector = copy_vector(buckets[radix].vector, buckets[radix].currentSize, buckets[radix].size);
-        clean_vector(old_ref);
-    }
-
-    buckets[radix].vector[buckets[radix].currentSize] = num;
-    buckets[radix].currentSize++;
 }
 
 void clean_buckets(bucket * buckets, int base) {
@@ -113,14 +83,26 @@ void clean_buckets(bucket * buckets, int base) {
     free(buckets);
 }
 
-void radix_sort (int base, int * vector, int size) {
+void radix_counting_sort (int base, int * vector, int size) {
+    int * counting = create_vector(base);
+
+    zeros_vector(counting, base);
+
     int max_radix = get_max_radix(base, vector, size);
 
     for(int i = 0; i < max_radix; i++) {
-        bucket * buckets = create_buckets(base);
+        for (int j = 0; j < size; j++) {
+            int radix = get_digit(base, vector[j], i);
+            counting[radix]++;
+        }
+
+        bucket * buckets = create_buckets(base, counting);
 
         for (int j = 0; j < size; j++) {
-            push_bucket(buckets, base, i, vector[j]);
+            int radix = get_digit(base, vector[j], i);
+            
+            buckets[radix].vector[buckets[radix].currentSize] = vector[j];
+            buckets[radix].currentSize++;
         }
 
         int k = 0;
@@ -133,21 +115,10 @@ void radix_sort (int base, int * vector, int size) {
         }
 
         clean_buckets(buckets, base);
+        zeros_vector(counting, base);
     }
-}
 
-void print_vector(int * vector, int size) {
-    for (int i = 0; i < size - 1; i++) {
-        printf("%d, ", vector[i]);
-    }
-    
-    printf("%d ", vector[size - 1]);
-
-    printf("\n");
-}
-
-void print_line() {
-    printf("\n\n\n--------------------------------------------------\n\n\n");
+    clean_vector(counting);
 }
 
 int main () {
@@ -161,14 +132,14 @@ int main () {
 
     time_t init = time(NULL);
 
-    radix_sort(base, vector, number_of_items);
+    radix_counting_sort(base, vector, number_of_items);
 
     time_t end = time(NULL);
 
     clean_vector(vector);
 
     printf(
-        "Elapsed time (radix sort, %d items, base %d, max integer %d): %ld seconds\n",
+        "Elapsed time (radix counting sort, %d items, base %d, max integer %d): %ld seconds\n",
         number_of_items,
         base,
         max,
