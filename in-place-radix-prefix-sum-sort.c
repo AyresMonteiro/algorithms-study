@@ -90,9 +90,8 @@ int get_max_radix (int base, int * vector, int size) {
     return max_radix;
 }
 
-void radix_counting_sort (int base, int * vector, int size) {
+void in_place_radix_counting_sort (int base, int * input, int size) {
     int * counting = create_vector(base);
-    int * input = copy_vector(vector, size, size);
     int * output = create_vector(size);
 
     zeros_vector(counting, base);
@@ -122,11 +121,8 @@ void radix_counting_sort (int base, int * vector, int size) {
         zeros_vector(output, size);
     }
 
-    copy_vector_to(input, vector, size);
-
     clean_vector(counting);
     clean_vector(output);
-    clean_vector(input);
 }
 
 int main () {
@@ -142,7 +138,7 @@ int main () {
 
     clock_t init = clock();
 
-    radix_counting_sort(base, vector, number_of_items);
+    in_place_radix_counting_sort(base, vector, number_of_items);
 
     clock_t end = clock();
 
